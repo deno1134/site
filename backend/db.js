@@ -34,6 +34,8 @@ db.run(`CREATE TABLE IF NOT EXISTS keys (
   FOREIGN KEY(product_id) REFERENCES products(id)
 )`);
 
+// HWID reset endpoint for admin
+
 // Create default admin if not exists
 const defaultAdmin = {
   username: 'admin',

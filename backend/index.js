@@ -85,6 +85,15 @@ app.delete('/api/keys/:id', verifyAdmin, (req, res) => {
   });
 });
 
+// Reset HWID for a key (admin only)
+app.post('/api/reset-key', verifyAdmin, (req, res) => {
+  const { key } = req.body;
+  db.run('UPDATE keys SET hwid = NULL WHERE key = ?', [key], function(err) {
+    if (err) return res.status(500).json({ message: 'DB error' });
+    res.json({ reset: this.changes });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
