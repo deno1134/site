@@ -52,6 +52,19 @@ function AdminPanel() {
     setProducts(res.data);
   };
 
+  const handleResetKey = async (keyValue) => {
+    await axios.post('http://localhost:3001/api/reset-key', { key: keyValue }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    // Refresh keys
+    if (selectedProduct) {
+      const res = await axios.get(`http://localhost:3001/api/keys/${selectedProduct}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setKeys(res.data);
+    }
+  };
+
   return (
     <div>
       <h2>Admin Panel</h2>
@@ -63,7 +76,12 @@ function AdminPanel() {
         <div>
           <h3>Keys</h3>
           <ul>
-            {keys.map(k => <li key={k.id}>{k.key} {k.is_used ? '(used)' : ''}</li>)}
+            {keys.map(k => (
+              <li key={k.id}>
+                {k.key} {k.is_used ? '(used)' : ''}
+                <button style={{marginLeft:8}} onClick={() => handleResetKey(k.key)}>Reset HWID</button>
+              </li>
+            ))}
           </ul>
           <input placeholder="New Key" value={newKey} onChange={e => setNewKey(e.target.value)} />
           <button onClick={handleAddKey}>Add Key</button>
