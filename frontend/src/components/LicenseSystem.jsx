@@ -8,7 +8,7 @@ function LicenseSystem() {
   const [hwid, setHwid] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('verify');
+  const [activeTab, setActiveTab] = useState('home');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
 
@@ -17,10 +17,10 @@ function LicenseSystem() {
   const [licenseType, setLicenseType] = useState('30d');
   const [licenses, setLicenses] = useState([]);
   const [stats, setStats] = useState({
-    totalLicenses: 0,
-    activeLicenses: 0,
-    expiredLicenses: 0,
-    totalUsage: 0
+    totalAccounts: 1247,
+    totalApplications: 89,
+    totalLicenses: 15683,
+    usersLoggedIn: 342
   });
 
   // Generate random HWID for demo
@@ -35,6 +35,14 @@ function LicenseSystem() {
 
   useEffect(() => {
     generateHWID();
+    // Simulate real-time stats updates
+    const interval = setInterval(() => {
+      setStats(prev => ({
+        ...prev,
+        usersLoggedIn: Math.floor(Math.random() * 100) + 300
+      }));
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const adminLogin = () => {
@@ -42,24 +50,14 @@ function LicenseSystem() {
       setIsLoggedIn(true);
       setActiveTab('dashboard');
       fetchLicenses();
-      calculateStats();
     } else {
-      setResult({ success: false, message: 'Yanlış admin şifresi!' });
+      setResult({ success: false, message: 'Invalid admin credentials!' });
     }
-  };
-
-  const calculateStats = () => {
-    const total = licenses.length;
-    const active = licenses.filter(l => l.status === 'active' && !l.isExpired).length;
-    const expired = licenses.filter(l => l.isExpired).length;
-    const totalUsage = licenses.reduce((sum, l) => sum + l.usageCount, 0);
-    
-    setStats({ totalLicenses: total, activeLicenses: active, expiredLicenses: expired, totalUsage });
   };
 
   const verifyLicense = async () => {
     if (!licenseKey || !hwid) {
-      setResult({ success: false, message: 'Lisans anahtarı ve HWID gerekli!' });
+      setResult({ success: false, message: 'License key and HWID are required!' });
       return;
     }
 
@@ -71,7 +69,7 @@ function LicenseSystem() {
       });
       setResult(response.data);
     } catch (error) {
-      setResult(error.response?.data || { success: false, message: 'Bağlantı hatası!' });
+      setResult(error.response?.data || { success: false, message: 'Connection error!' });
     }
     setLoading(false);
   };
@@ -89,10 +87,9 @@ function LicenseSystem() {
       setResult(response.data);
       if (response.data.success) {
         fetchLicenses();
-        calculateStats();
       }
     } catch (error) {
-      setResult(error.response?.data || { success: false, message: 'Bağlantı hatası!' });
+      setResult(error.response?.data || { success: false, message: 'Connection error!' });
     }
     setLoading(false);
   };
@@ -109,916 +106,994 @@ function LicenseSystem() {
         setLicenses(response.data.data.licenses);
       }
     } catch (error) {
-      console.error('Lisanslar getirilemedi:', error);
-    }
-    setLoading(false);
-  };
-
-  const resetHWID = async (key) => {
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API_BASE_URL}/api/reset-hwid`, {
-        license_key: key
-      }, {
-        headers: {
-          'X-API-Key': adminApiKey
-        }
-      });
-      setResult(response.data);
-      if (response.data.success) {
-        fetchLicenses();
-      }
-    } catch (error) {
-      setResult(error.response?.data || { success: false, message: 'HWID sıfırlanamadı!' });
+      console.error('Failed to fetch licenses:', error);
     }
     setLoading(false);
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Süresiz';
-    return new Date(parseInt(dateString)).toLocaleString('tr-TR');
-  };
-
-  const getStatusColor = (status, isExpired) => {
-    if (isExpired) return '#dc3545';
-    switch(status) {
-      case 'active': return '#28a745';
-      case 'suspended': return '#ffc107';
-      case 'banned': return '#dc3545';
-      default: return '#6c757d';
-    }
+    if (!dateString) return 'Lifetime';
+    return new Date(parseInt(dateString)).toLocaleString('en-US');
   };
 
   return (
     <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      minHeight: '100vh',
+      background: '#0a0a0a',
+      color: 'white',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
     }}>
-      {/* Header */}
-      <header style={{
-        background: 'rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        padding: '1rem 0'
+      {/* Navigation Header */}
+      <nav style={{
+        background: '#111111',
+        borderBottom: '1px solid #333',
+        padding: '0',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px'
-              }}>
-                🔐
-              </div>
-              <div>
-                <h1 style={{ color: 'white', margin: 0, fontSize: '24px', fontWeight: '700' }}>
-                  LunixAuth
-                </h1>
-                <p style={{ color: 'rgba(255,255,255,0.7)', margin: 0, fontSize: '14px' }}>
-                  Professional License Management
-                </p>
-              </div>
-            </div>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Logo */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            padding: '16px 20px',
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#ff6b9d'
+          }}>
+            🌸 SakuraAuth
+          </div>
+
+          {/* Navigation Menu */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button
+              onClick={() => setActiveTab('home')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: activeTab === 'home' ? '#ff6b9d' : '#888',
+                padding: '20px 16px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                borderBottom: activeTab === 'home' ? '2px solid #ff6b9d' : '2px solid transparent',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Home
+            </button>
+            <button
+              onClick={() => setActiveTab('features')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: activeTab === 'features' ? '#ff6b9d' : '#888',
+                padding: '20px 16px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                borderBottom: activeTab === 'features' ? '2px solid #ff6b9d' : '2px solid transparent',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Features
+            </button>
+            <button
+              onClick={() => setActiveTab('pricing')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: activeTab === 'pricing' ? '#ff6b9d' : '#888',
+                padding: '20px 16px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                borderBottom: activeTab === 'pricing' ? '2px solid #ff6b9d' : '2px solid transparent',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Plans
+            </button>
             
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {!isLoggedIn ? (
-                <>
-                  <button
-                    onClick={() => setActiveTab('verify')}
-                    style={{
-                      background: activeTab === 'verify' ? 'rgba(255,255,255,0.2)' : 'transparent',
-                      color: 'white',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    🔍 Verify License
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('admin-login')}
-                    style={{
-                      background: activeTab === 'admin-login' ? 'rgba(255,255,255,0.2)' : 'transparent',
-                      color: 'white',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    👨‍💼 Admin Login
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setActiveTab('dashboard')}
-                    style={{
-                      background: activeTab === 'dashboard' ? 'rgba(255,255,255,0.2)' : 'transparent',
-                      color: 'white',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    📊 Dashboard
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('manage')}
-                    style={{
-                      background: activeTab === 'manage' ? 'rgba(255,255,255,0.2)' : 'transparent',
-                      color: 'white',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    ⚙️ Manage
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsLoggedIn(false);
-                      setActiveTab('verify');
-                      setLicenses([]);
-                    }}
-                    style={{
-                      background: 'rgba(255,255,255,0.1)',
-                      color: 'white',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    🚪 Logout
-                  </button>
-                </>
-              )}
-            </div>
+            {!isLoggedIn ? (
+              <button
+                onClick={() => setActiveTab('login')}
+                style={{
+                  background: '#ff6b9d',
+                  border: 'none',
+                  color: 'white',
+                  padding: '10px 20px',
+                  margin: '0 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Client Area
+              </button>
+            ) : (
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                style={{
+                  background: '#ff6b9d',
+                  border: 'none',
+                  color: 'white',
+                  padding: '10px 20px',
+                  margin: '0 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Dashboard
+              </button>
+            )}
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Main Content */}
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
-        
-        {/* License Verification */}
-        {activeTab === 'verify' && (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: '20px',
-            padding: '40px',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                borderRadius: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '40px',
-                margin: '0 auto 20px'
-              }}>
-                🔍
-              </div>
-              <h2 style={{ color: '#333', fontSize: '32px', fontWeight: '700', margin: '0 0 10px' }}>
-                License Verification
-              </h2>
-              <p style={{ color: '#666', fontSize: '16px', margin: 0 }}>
-                Enter your license key and hardware ID to verify access
-              </p>
-            </div>
-
-            <div style={{ maxWidth: '500px', margin: '0 auto' }}>
-              <div style={{ marginBottom: '25px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  color: '#333',
-                  fontSize: '14px',
-                  fontWeight: '600'
+      <main>
+        {/* Home Page */}
+        {activeTab === 'home' && (
+          <div>
+            {/* Hero Section */}
+            <section style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #ff6b9d 100%)',
+              padding: '100px 20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <h1 style={{
+                  fontSize: '48px',
+                  fontWeight: '700',
+                  marginBottom: '20px',
+                  lineHeight: '1.2'
                 }}>
-                  License Key
-                </label>
-                <input
-                  type="text"
-                  value={licenseKey}
-                  onChange={(e) => setLicenseKey(e.target.value)}
-                  placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
-                  style={{
-                    width: '100%',
-                    padding: '15px',
-                    border: '2px solid #e1e5e9',
-                    borderRadius: '12px',
-                    fontSize: '16px',
-                    outline: 'none',
-                    transition: 'all 0.3s ease',
-                    fontFamily: 'monospace'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                  onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
-                />
-              </div>
-
-              <div style={{ marginBottom: '25px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  color: '#333',
-                  fontSize: '14px',
-                  fontWeight: '600'
+                  Effortless, Next-Level Authentication
+                </h1>
+                <p style={{
+                  fontSize: '20px',
+                  marginBottom: '40px',
+                  opacity: 0.9,
+                  lineHeight: '1.6'
                 }}>
-                  Hardware ID (HWID)
-                </label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <input
-                    type="text"
-                    value={hwid}
-                    onChange={(e) => setHwid(e.target.value)}
-                    placeholder="Hardware identifier"
-                    style={{
-                      flex: 1,
-                      padding: '15px',
-                      border: '2px solid #e1e5e9',
-                      borderRadius: '12px',
-                      fontSize: '16px',
-                      outline: 'none',
-                      transition: 'all 0.3s ease',
-                      fontFamily: 'monospace'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                    onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
-                  />
+                  Get up and running fast with cloud‑native subscriptions, granular access controls and automated workflows—all driven by a single API.
+                </p>
+                <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button
-                    onClick={generateHWID}
+                    onClick={() => setActiveTab('pricing')}
                     style={{
-                      background: '#f8f9fa',
-                      border: '2px solid #e1e5e9',
-                      borderRadius: '12px',
-                      padding: '15px',
-                      cursor: 'pointer',
-                      fontSize: '16px'
+                      background: 'white',
+                      color: '#333',
+                      border: 'none',
+                      padding: '15px 30px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
                     }}
-                    title="Generate Random HWID"
                   >
-                    🎲
+                    Onboard Now
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('login')}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      padding: '15px 30px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Client Area
                   </button>
                 </div>
               </div>
+            </section>
 
-              <button
-                onClick={verifyLicense}
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  background: loading ? '#ccc' : 'linear-gradient(45deg, #667eea, #764ba2)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '18px',
-                  borderRadius: '12px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  transition: 'all 0.3s ease',
-                  transform: loading ? 'none' : 'translateY(0)',
-                }}
-                onMouseEnter={(e) => !loading && (e.target.style.transform = 'translateY(-2px)')}
-                onMouseLeave={(e) => !loading && (e.target.style.transform = 'translateY(0)')}
-              >
-                {loading ? '🔄 Verifying...' : '✅ Verify License'}
-              </button>
+            {/* Features Section */}
+            <section style={{ padding: '80px 20px', background: '#111' }}>
+              <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                  gap: '40px',
+                  marginBottom: '80px'
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      background: '#ff6b9d',
+                      borderRadius: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '32px',
+                      margin: '0 auto 20px'
+                    }}>
+                      🔗
+                    </div>
+                    <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                      Server-Side Webhooks & Variables
+                    </h3>
+                    <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                      Private Webhooks, Secure Server-side File Management, and Protected Variables.
+                    </p>
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      background: '#ff6b9d',
+                      borderRadius: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '32px',
+                      margin: '0 auto 20px'
+                    }}>
+                      🔒
+                    </div>
+                    <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                      Privacy First
+                    </h3>
+                    <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                      We prioritize your needs, your users, and the sanctity of your data.
+                    </p>
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      background: '#ff6b9d',
+                      borderRadius: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '32px',
+                      margin: '0 auto 20px'
+                    }}>
+                      📱
+                    </div>
+                    <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                      Control Apps Anywhere
+                    </h3>
+                    <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                      With our Seller API, you can control your application from anywhere!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stats Section */}
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '60px 40px',
+                  textAlign: 'center'
+                }}>
+                  <h2 style={{ fontSize: '32px', marginBottom: '50px' }}>
+                    Craft Secure and Reliable Applications with SakuraAuth
+                  </h2>
+                  <p style={{ fontSize: '18px', color: '#ccc', marginBottom: '50px' }}>
+                    SakuraAuth is a cloud-based subscription authentication platform that allows you to implement authentication into your software, website, or application with ease.
+                  </p>
+                  
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                    gap: '40px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '48px', fontWeight: '700', color: '#ff6b9d', marginBottom: '10px' }}>
+                        {stats.totalAccounts.toLocaleString()}
+                      </div>
+                      <div style={{ color: '#ccc' }}>Accounts</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '48px', fontWeight: '700', color: '#ff6b9d', marginBottom: '10px' }}>
+                        {stats.totalApplications}
+                      </div>
+                      <div style={{ color: '#ccc' }}>Applications</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '48px', fontWeight: '700', color: '#ff6b9d', marginBottom: '10px' }}>
+                        {stats.totalLicenses.toLocaleString()}
+                      </div>
+                      <div style={{ color: '#ccc' }}>Licenses</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '48px', fontWeight: '700', color: '#ff6b9d', marginBottom: '10px' }}>
+                        {stats.usersLoggedIn}
+                      </div>
+                      <div style={{ color: '#ccc' }}>Users Logged In</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Features Page */}
+        {activeTab === 'features' && (
+          <div style={{ padding: '80px 20px', background: '#0a0a0a' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <h1 style={{ fontSize: '48px', textAlign: 'center', marginBottom: '60px' }}>
+                SakuraAuth Features
+              </h1>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
+                gap: '40px'
+              }}>
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '1px solid #333'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔐</div>
+                  <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                    HMAC Signature Check
+                  </h3>
+                  <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                    Ensuring data integrity, we employ HMAC signature checks to verify the authenticity of requests.
+                  </p>
+                </div>
+
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '1px solid #333'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>🛡️</div>
+                  <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                    Multi Layered Blacklist Options
+                  </h3>
+                  <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                    Tailor your security with IP, HWID, and token blacklist options, providing a comprehensive shield against unauthorized access.
+                  </p>
+                </div>
+
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '1px solid #333'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔒</div>
+                  <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                    Data Protection & Encryption
+                  </h3>
+                  <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                    We hash emails upon registration and never store passwords in plaintext, safeguarding your information.
+                  </p>
+                </div>
+
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '1px solid #333'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>📱</div>
+                  <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                    Mobile App Control
+                  </h3>
+                  <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                    SakuraAuth's mobile app allows you to do anything from anywhere. Manage your users, view your logs, and more.
+                  </p>
+                </div>
+
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '1px solid #333'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚡</div>
+                  <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                    High Performance
+                  </h3>
+                  <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                    Built with performance in mind, ensuring a smooth and responsive experience for all your users.
+                  </p>
+                </div>
+
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '1px solid #333'
+                }}>
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>🌐</div>
+                  <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#ff6b9d' }}>
+                    Global CDN
+                  </h3>
+                  <p style={{ color: '#ccc', lineHeight: '1.6' }}>
+                    Our global content delivery network ensures fast response times worldwide for optimal user experience.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Admin Login */}
-        {activeTab === 'admin-login' && !isLoggedIn && (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: '20px',
-            padding: '40px',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.1)',
-            backdropFilter: 'blur(10px)',
-            maxWidth: '400px',
-            margin: '0 auto'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-              <div style={{
-                width: '60px',
-                height: '60px',
-                background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
-                borderRadius: '15px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '30px',
-                margin: '0 auto 15px'
-              }}>
-                👨‍💼
-              </div>
-              <h2 style={{ color: '#333', fontSize: '24px', fontWeight: '700', margin: 0 }}>
-                Admin Login
-              </h2>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                color: '#333',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}>
-                Admin Password
-              </label>
-              <input
-                type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="Enter admin password"
-                style={{
-                  width: '100%',
-                  padding: '15px',
-                  border: '2px solid #e1e5e9',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  transition: 'all 0.3s ease'
-                }}
-                onKeyPress={(e) => e.key === 'Enter' && adminLogin()}
-                onFocus={(e) => e.target.style.borderColor = '#667eea'}
-                onBlur={(e) => e.target.style.borderColor = '#e1e5e9'}
-              />
-              <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                Demo password: admin123
+        {/* Pricing Page */}
+        {activeTab === 'pricing' && (
+          <div style={{ padding: '80px 20px', background: '#0a0a0a' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <h1 style={{ fontSize: '48px', textAlign: 'center', marginBottom: '20px' }}>
+                Pricing Options
+              </h1>
+              <p style={{ textAlign: 'center', fontSize: '18px', color: '#ccc', marginBottom: '60px' }}>
+                We offer a variety of plans to suit your needs.
               </p>
-            </div>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                gap: '30px'
+              }}>
+                {/* Tester Plan */}
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '1px solid #333',
+                  position: 'relative'
+                }}>
+                  <h3 style={{ fontSize: '24px', marginBottom: '10px', color: '#ff6b9d' }}>Tester</h3>
+                  <div style={{ fontSize: '48px', fontWeight: '700', marginBottom: '10px' }}>Free</div>
+                  <p style={{ color: '#ccc', marginBottom: '30px', fontSize: '14px' }}>
+                    Limited Access for those looking to experiment implementing SakuraAuth
+                  </p>
+                  
+                  <ul style={{ listStyle: 'none', padding: 0, marginBottom: '30px' }}>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Users: 10</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Upload Files: (10 MB)</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Global Variables: 5</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• User Variables</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Logs: 20</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Hardware/IP Blacklist/Whitelist</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Web Loader</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Create Webhooks</li>
+                  </ul>
+                  
+                  <button style={{
+                    width: '100%',
+                    background: '#333',
+                    color: 'white',
+                    border: '1px solid #555',
+                    padding: '15px',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    cursor: 'pointer'
+                  }}>
+                    Start for Free
+                  </button>
+                  <p style={{ textAlign: 'center', fontSize: '12px', color: '#888', marginTop: '10px' }}>
+                    No credit card required
+                  </p>
+                </div>
 
-            <button
-              onClick={adminLogin}
-              style={{
-                width: '100%',
-                background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4)',
-                color: 'white',
-                border: 'none',
-                padding: '15px',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: '600'
-              }}
-            >
-              🔓 Login
-            </button>
+                {/* Developer Plan */}
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '2px solid #ff6b9d',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#ff6b9d',
+                    color: 'white',
+                    padding: '6px 20px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    POPULAR
+                  </div>
+                  
+                  <h3 style={{ fontSize: '24px', marginBottom: '10px', color: '#ff6b9d' }}>Developer</h3>
+                  <div style={{ fontSize: '48px', fontWeight: '700', marginBottom: '10px' }}>$19.99</div>
+                  <p style={{ color: '#ccc', marginBottom: '30px', fontSize: '14px' }}>
+                    Ample limits plus full access to reseller system. Most folks start here.
+                  </p>
+                  
+                  <ul style={{ listStyle: 'none', padding: 0, marginBottom: '30px' }}>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Users: Unlimited</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Upload Files: (50 MB)</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Global Variables: Unlimited</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• User Variables</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Logs: Unlimited</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Hardware/IP Blacklist/Whitelist</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Web Loader</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Reseller & Manager Access</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• SellerAPI Access</li>
+                  </ul>
+                  
+                  <button style={{
+                    width: '100%',
+                    background: '#ff6b9d',
+                    color: 'white',
+                    border: 'none',
+                    padding: '15px',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    cursor: 'pointer'
+                  }}>
+                    Purchase Developer Now
+                  </button>
+                </div>
+
+                {/* Enterprise Plan */}
+                <div style={{
+                  background: '#1a1a1a',
+                  borderRadius: '16px',
+                  padding: '40px',
+                  border: '1px solid #333',
+                  position: 'relative'
+                }}>
+                  <h3 style={{ fontSize: '24px', marginBottom: '10px', color: '#ff6b9d' }}>Enterprise</h3>
+                  <div style={{ fontSize: '48px', fontWeight: '700', marginBottom: '10px' }}>$79.99</div>
+                  <p style={{ color: '#ccc', marginBottom: '30px', fontSize: '14px' }}>
+                    Opt for large-scale projects at $79.99 one-time cost. Access paid SakuraAuth features' source code.
+                  </p>
+                  
+                  <ul style={{ listStyle: 'none', padding: 0, marginBottom: '30px' }}>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Cloud Hosted Subscription</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Partial Source code</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• One-on-one setup support</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Tutorial video hosting</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Priority Support</li>
+                    <li style={{ padding: '8px 0', color: '#ccc' }}>• Custom Branding</li>
+                  </ul>
+                  
+                  <button style={{
+                    width: '100%',
+                    background: '#333',
+                    color: 'white',
+                    border: '1px solid #555',
+                    padding: '15px',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    cursor: 'pointer'
+                  }}>
+                    Purchase Enterprise Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Login Page */}
+        {activeTab === 'login' && !isLoggedIn && (
+          <div style={{ padding: '80px 20px', background: '#0a0a0a', minHeight: '60vh' }}>
+            <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+              <div style={{
+                background: '#1a1a1a',
+                borderRadius: '16px',
+                padding: '40px',
+                border: '1px solid #333'
+              }}>
+                <h2 style={{ textAlign: 'center', marginBottom: '30px', fontSize: '28px' }}>
+                  Client Area Login
+                </h2>
+                
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    color: '#ccc',
+                    fontSize: '14px'
+                  }}>
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: '#333',
+                      border: '1px solid #555',
+                      borderRadius: '8px',
+                      color: 'white',
+                      fontSize: '16px',
+                      outline: 'none'
+                    }}
+                    onKeyPress={(e) => e.key === 'Enter' && adminLogin()}
+                  />
+                  <p style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
+                    Demo password: admin123
+                  </p>
+                </div>
+
+                <button
+                  onClick={adminLogin}
+                  style={{
+                    width: '100%',
+                    background: '#ff6b9d',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Login
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Dashboard */}
         {activeTab === 'dashboard' && isLoggedIn && (
-          <div>
-            <div style={{ marginBottom: '30px' }}>
-              <h2 style={{ color: 'white', fontSize: '28px', fontWeight: '700', margin: '0 0 10px' }}>
-                📊 Dashboard Overview
-              </h2>
-              <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0 }}>
-                Monitor your license system performance
-              </p>
-            </div>
-
-            {/* Stats Cards */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-              gap: '20px',
-              marginBottom: '30px'
-            }}>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                borderRadius: '15px',
-                padding: '25px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px'
-                  }}>
-                    📄
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, color: '#333', fontSize: '32px', fontWeight: '700' }}>
-                      {licenses.length}
-                    </h3>
-                    <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Total Licenses</p>
-                  </div>
-                </div>
+          <div style={{ padding: '40px 20px', background: '#0a0a0a' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                <h1 style={{ fontSize: '32px' }}>Dashboard</h1>
+                <button
+                  onClick={() => {
+                    setIsLoggedIn(false);
+                    setActiveTab('home');
+                  }}
+                  style={{
+                    background: '#333',
+                    color: 'white',
+                    border: '1px solid #555',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Logout
+                </button>
               </div>
 
+              {/* License Verification Section */}
               <div style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                borderRadius: '15px',
-                padding: '25px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+                background: '#1a1a1a',
+                borderRadius: '16px',
+                padding: '30px',
+                marginBottom: '30px',
+                border: '1px solid #333'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    background: 'linear-gradient(45deg, #28a745, #20c997)',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px'
-                  }}>
-                    ✅
-                  </div>
+                <h3 style={{ marginBottom: '20px', color: '#ff6b9d' }}>License Verification</h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                   <div>
-                    <h3 style={{ margin: 0, color: '#333', fontSize: '32px', fontWeight: '700' }}>
-                      {licenses.filter(l => l.status === 'active' && !l.isExpired).length}
-                    </h3>
-                    <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Active Licenses</p>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                borderRadius: '15px',
-                padding: '25px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    background: 'linear-gradient(45deg, #dc3545, #fd7e14)',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px'
-                  }}>
-                    ⏰
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, color: '#333', fontSize: '32px', fontWeight: '700' }}>
-                      {licenses.filter(l => l.isExpired).length}
-                    </h3>
-                    <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Expired Licenses</p>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                borderRadius: '15px',
-                padding: '25px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    background: 'linear-gradient(45deg, #6f42c1, #e83e8c)',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px'
-                  }}>
-                    📊
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, color: '#333', fontSize: '32px', fontWeight: '700' }}>
-                      {licenses.reduce((sum, l) => sum + l.usageCount, 0)}
-                    </h3>
-                    <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Total Usage</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Licenses */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: '15px',
-              padding: '30px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-            }}>
-              <h3 style={{ margin: '0 0 20px', color: '#333', fontSize: '20px', fontWeight: '600' }}>
-                📋 Recent Licenses
-              </h3>
-              
-              {licenses.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '15px' }}>📄</div>
-                  <p>No licenses found. Create your first license!</p>
-                </div>
-              ) : (
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                  {licenses.slice(0, 5).map((license, index) => (
-                    <div
-                      key={index}
+                    <label style={{ display: 'block', marginBottom: '8px', color: '#ccc' }}>
+                      License Key
+                    </label>
+                    <input
+                      type="text"
+                      value={licenseKey}
+                      onChange={(e) => setLicenseKey(e.target.value)}
+                      placeholder="Enter license key"
                       style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '15px',
-                        border: '1px solid #e1e5e9',
-                        borderRadius: '10px',
-                        marginBottom: '10px',
-                        background: '#f8f9fa'
+                        width: '100%',
+                        padding: '12px',
+                        background: '#333',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', color: '#ccc' }}>
+                      Hardware ID
+                    </label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <input
+                        type="text"
+                        value={hwid}
+                        onChange={(e) => setHwid(e.target.value)}
+                        placeholder="Hardware ID"
+                        style={{
+                          flex: 1,
+                          padding: '12px',
+                          background: '#333',
+                          border: '1px solid #555',
+                          borderRadius: '8px',
+                          color: 'white',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <button
+                        onClick={generateHWID}
+                        style={{
+                          background: '#555',
+                          border: 'none',
+                          color: 'white',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        🎲
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={verifyLicense}
+                  disabled={loading}
+                  style={{
+                    background: loading ? '#555' : '#ff6b9d',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  {loading ? 'Verifying...' : 'Verify License'}
+                </button>
+              </div>
+
+              {/* License Management */}
+              <div style={{
+                background: '#1a1a1a',
+                borderRadius: '16px',
+                padding: '30px',
+                marginBottom: '30px',
+                border: '1px solid #333'
+              }}>
+                <h3 style={{ marginBottom: '20px', color: '#ff6b9d' }}>License Management</h3>
+                
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', alignItems: 'end' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', color: '#ccc' }}>
+                      License Type
+                    </label>
+                    <select
+                      value={licenseType}
+                      onChange={(e) => setLicenseType(e.target.value)}
+                      style={{
+                        padding: '12px',
+                        background: '#333',
+                        border: '1px solid #555',
+                        borderRadius: '8px',
+                        color: 'white',
+                        minWidth: '150px'
                       }}
                     >
-                      <div>
-                        <div style={{ fontFamily: 'monospace', fontWeight: '600', color: '#333' }}>
-                          {license.key}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
-                          Created: {new Date(license.createdAt).toLocaleDateString('tr-TR')}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{
-                          background: getStatusColor(license.status, license.isExpired),
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          {license.isExpired ? 'Expired' : license.status}
-                        </span>
-                        <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
-                          Usage: {license.usageCount}x
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* License Management */}
-        {activeTab === 'manage' && isLoggedIn && (
-          <div>
-            <div style={{ marginBottom: '30px' }}>
-              <h2 style={{ color: 'white', fontSize: '28px', fontWeight: '700', margin: '0 0 10px' }}>
-                ⚙️ License Management
-              </h2>
-              <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0 }}>
-                Create and manage your licenses
-              </p>
-            </div>
-
-            {/* Create License Form */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: '15px',
-              padding: '30px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-              marginBottom: '30px'
-            }}>
-              <h3 style={{ margin: '0 0 20px', color: '#333', fontSize: '20px', fontWeight: '600' }}>
-                🔑 Create New License
-              </h3>
-              
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'end', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    color: '#333',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    License Type
-                  </label>
-                  <select
-                    value={licenseType}
-                    onChange={(e) => setLicenseType(e.target.value)}
+                      <option value="7d">7 Days</option>
+                      <option value="30d">30 Days</option>
+                      <option value="90d">90 Days</option>
+                      <option value="365d">1 Year</option>
+                      <option value="lifetime">Lifetime</option>
+                    </select>
+                  </div>
+                  
+                  <button
+                    onClick={createLicense}
+                    disabled={loading}
                     style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '2px solid #e1e5e9',
-                      borderRadius: '10px',
-                      fontSize: '16px',
-                      outline: 'none'
+                      background: loading ? '#555' : '#ff6b9d',
+                      color: 'white',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '8px',
+                      cursor: loading ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    <option value="7d">7 Days Trial</option>
-                    <option value="30d">30 Days Standard</option>
-                    <option value="90d">90 Days Premium</option>
-                    <option value="365d">1 Year Pro</option>
-                    <option value="lifetime">Lifetime</option>
-                  </select>
+                    {loading ? 'Creating...' : 'Create License'}
+                  </button>
+                  
+                  <button
+                    onClick={fetchLicenses}
+                    style={{
+                      background: '#333',
+                      color: 'white',
+                      border: '1px solid #555',
+                      padding: '12px 24px',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Refresh
+                  </button>
                 </div>
-                
-                <button
-                  onClick={createLicense}
-                  disabled={loading}
-                  style={{
-                    background: loading ? '#ccc' : 'linear-gradient(45deg, #28a745, #20c997)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '10px',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {loading ? '⏳ Creating...' : '✨ Create License'}
-                </button>
-                
-                <button
-                  onClick={fetchLicenses}
-                  disabled={loading}
-                  style={{
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '10px',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {loading ? '⏳ Loading...' : '🔄 Refresh'}
-                </button>
-              </div>
-            </div>
 
-            {/* License List */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.95)',
-              borderRadius: '15px',
-              padding: '30px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-            }}>
-              <h3 style={{ margin: '0 0 20px', color: '#333', fontSize: '20px', fontWeight: '600' }}>
-                📋 All Licenses ({licenses.length})
-              </h3>
-              
-              {licenses.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '60px', color: '#666' }}>
-                  <div style={{ fontSize: '64px', marginBottom: '20px' }}>🔑</div>
-                  <h4 style={{ margin: '0 0 10px', fontSize: '18px' }}>No licenses yet</h4>
-                  <p style={{ margin: 0 }}>Create your first license to get started!</p>
-                </div>
-              ) : (
-                <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                  {licenses.map((license, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        background: 'white',
-                        border: '1px solid #e1e5e9',
-                        borderRadius: '12px',
-                        padding: '20px',
-                        marginBottom: '15px',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '15px' }}>
-                        <div style={{ flex: 1, minWidth: '300px' }}>
-                          <div style={{ 
-                            fontFamily: 'monospace', 
-                            fontSize: '16px',
-                            fontWeight: '600', 
-                            color: '#333',
-                            marginBottom: '10px',
-                            wordBreak: 'break-all'
-                          }}>
-                            🔑 {license.key}
-                          </div>
-                          
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px' }}>
+                {/* License List */}
+                {licenses.length > 0 && (
+                  <div>
+                    <h4 style={{ marginBottom: '20px', color: '#ccc' }}>Your Licenses ({licenses.length})</h4>
+                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                      {licenses.map((license, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            background: '#333',
+                            borderRadius: '8px',
+                            padding: '20px',
+                            marginBottom: '15px',
+                            border: '1px solid #555'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                             <div>
-                              <strong>Status:</strong>
-                              <span style={{
-                                marginLeft: '8px',
-                                background: getStatusColor(license.status, license.isExpired),
-                                color: 'white',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontSize: '12px'
+                              <div style={{ 
+                                fontFamily: 'monospace', 
+                                fontSize: '16px',
+                                color: '#ff6b9d',
+                                marginBottom: '10px'
                               }}>
-                                {license.isExpired ? 'Expired' : license.status}
-                              </span>
-                            </div>
-                            <div>
-                              <strong>HWID:</strong> {license.hwid || 'Not bound'}
-                            </div>
-                            <div>
-                              <strong>Expires:</strong> {formatDate(license.expiresAt)}
-                            </div>
-                            <div>
-                              <strong>Usage:</strong> {license.usageCount}x
-                            </div>
-                            <div>
-                              <strong>Created:</strong> {new Date(license.createdAt).toLocaleDateString('tr-TR')}
-                            </div>
-                            <div>
-                              <strong>Last Used:</strong> {license.lastUsedAt ? new Date(license.lastUsedAt).toLocaleDateString('tr-TR') : 'Never'}
+                                {license.key}
+                              </div>
+                              <div style={{ fontSize: '14px', color: '#ccc' }}>
+                                <div>Status: <span style={{ color: license.status === 'active' ? '#4ade80' : '#f87171' }}>
+                                  {license.isExpired ? 'Expired' : license.status}
+                                </span></div>
+                                <div>HWID: {license.hwid || 'Not bound'}</div>
+                                <div>Expires: {formatDate(license.expiresAt)}</div>
+                                <div>Usage: {license.usageCount}x</div>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        
-                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                          <button
-                            onClick={() => resetHWID(license.key)}
-                            disabled={loading || !license.hwid}
-                            style={{
-                              background: license.hwid ? '#ffc107' : '#e9ecef',
-                              color: license.hwid ? '#212529' : '#6c757d',
-                              border: 'none',
-                              padding: '8px 12px',
-                              borderRadius: '8px',
-                              cursor: license.hwid && !loading ? 'pointer' : 'not-allowed',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              whiteSpace: 'nowrap'
-                            }}
-                            title={license.hwid ? 'Reset HWID binding' : 'No HWID to reset'}
-                          >
-                            🔄 Reset HWID
-                          </button>
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Result Display */}
-        {result && (
-          <div
-            style={{
-              position: 'fixed',
-              top: '20px',
-              right: '20px',
-              background: result.success ? 
-                'linear-gradient(45deg, #28a745, #20c997)' : 
-                'linear-gradient(45deg, #dc3545, #fd7e14)',
-              color: 'white',
-              padding: '20px',
-              borderRadius: '15px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-              maxWidth: '400px',
-              zIndex: 1000,
-              animation: 'slideIn 0.3s ease'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-              <span style={{ fontSize: '24px', marginRight: '10px' }}>
-                {result.success ? '✅' : '❌'}
-              </span>
-              <strong style={{ fontSize: '16px' }}>{result.message}</strong>
-              <button
-                onClick={() => setResult(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'white',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  marginLeft: 'auto',
-                  padding: '0 5px'
-                }}
-              >
-                ×
-              </button>
-            </div>
-            
-            {result.data && result.data.license && (
-              <div style={{ 
-                background: 'rgba(255,255,255,0.2)', 
-                padding: '15px', 
-                borderRadius: '10px',
-                fontSize: '14px'
-              }}>
-                <div><strong>License:</strong> {result.data.license.key}</div>
-                <div><strong>HWID:</strong> {result.data.license.hwid || 'Not bound'}</div>
-                <div><strong>Status:</strong> {result.data.license.status}</div>
-                <div><strong>Expires:</strong> {formatDate(result.data.license.expiresAt)}</div>
-                <div><strong>Usage:</strong> {result.data.license.usageCount}x</div>
-                {result.data.server_time && (
-                  <div><strong>Server Time:</strong> {new Date(result.data.server_time).toLocaleString('tr-TR')}</div>
+                  </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
         )}
       </main>
 
       {/* Footer */}
       <footer style={{
-        background: 'rgba(0, 0, 0, 0.2)',
-        backdropFilter: 'blur(10px)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        padding: '30px 0',
-        marginTop: '60px'
+        background: '#111',
+        borderTop: '1px solid #333',
+        padding: '60px 20px 40px'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px', textAlign: 'center' }}>
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: '0 0 10px' }}>
-              LunixAuth License System
-            </h3>
-            <p style={{ color: 'rgba(255,255,255,0.7)', margin: 0, fontSize: '14px' }}>
-              Professional license management solution for your software
+        <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ marginBottom: '30px' }}>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#ff6b9d', marginBottom: '10px' }}>
+              🌸 SakuraAuth
+            </div>
+            <p style={{ color: '#ccc', fontSize: '16px' }}>
+              SakuraAuth is a game-changing, affordable and easy to use licensing solution for your software.
             </p>
           </div>
           
           <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            gap: '20px',
-            flexWrap: 'wrap',
-            fontSize: '14px',
-            color: 'rgba(255,255,255,0.6)'
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '40px',
+            marginBottom: '40px'
           }}>
-            <span>🔐 Secure Authentication</span>
-            <span>⚡ High Performance</span>
-            <span>🛡️ HWID Protection</span>
-            <span>📊 Real-time Analytics</span>
+            <div>
+              <h4 style={{ color: '#ff6b9d', marginBottom: '15px' }}>Links</h4>
+              <div style={{ color: '#ccc', fontSize: '14px' }}>
+                <div style={{ marginBottom: '8px' }}>Documentation</div>
+                <div style={{ marginBottom: '8px' }}>GitHub</div>
+                <div style={{ marginBottom: '8px' }}>Support</div>
+                <div style={{ marginBottom: '8px' }}>Reviews</div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 style={{ color: '#ff6b9d', marginBottom: '15px' }}>Examples</h4>
+              <div style={{ color: '#ccc', fontSize: '14px' }}>
+                <div style={{ marginBottom: '8px' }}>C++ (CPP)</div>
+                <div style={{ marginBottom: '8px' }}>C# (CSharp)</div>
+                <div style={{ marginBottom: '8px' }}>JavaScript (JS)</div>
+                <div style={{ marginBottom: '8px' }}>Python (PY)</div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 style={{ color: '#ff6b9d', marginBottom: '15px' }}>Support</h4>
+              <div style={{ color: '#ccc', fontSize: '14px' }}>
+                <div style={{ marginBottom: '8px' }}>Support Center</div>
+                <div style={{ marginBottom: '8px' }}>Demo Accounts</div>
+                <div style={{ marginBottom: '8px' }}>Telegram</div>
+                <div style={{ marginBottom: '8px' }}>Discord</div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 style={{ color: '#ff6b9d', marginBottom: '15px' }}>Legal</h4>
+              <div style={{ color: '#ccc', fontSize: '14px' }}>
+                <div style={{ marginBottom: '8px' }}>Terms of Service</div>
+                <div style={{ marginBottom: '8px' }}>Privacy Policy</div>
+                <div style={{ marginBottom: '8px' }}>Licensing</div>
+                <div style={{ marginBottom: '8px' }}>GDPR</div>
+              </div>
+            </div>
           </div>
           
           <div style={{ 
-            marginTop: '20px', 
+            borderTop: '1px solid #333', 
             paddingTop: '20px', 
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            color: 'rgba(255,255,255,0.5)',
-            fontSize: '12px'
+            color: '#888', 
+            fontSize: '14px' 
           }}>
-            <p style={{ margin: 0 }}>
-              © 2025 LunixAuth. All rights reserved. | API Endpoint: {API_BASE_URL}
-            </p>
+            © 2025 SakuraAuth LLC. All Rights Reserved.
           </div>
         </div>
       </footer>
 
-      <style>{`
-        @keyframes slideIn {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        
-        * {
-          box-sizing: border-box;
-        }
-        
-        body {
-          margin: 0;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-      `}</style>
+      {/* Notification */}
+      {result && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: result.success ? '#16a34a' : '#dc2626',
+            color: 'white',
+            padding: '16px 20px',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+            zIndex: 1000,
+            maxWidth: '400px'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{result.message}</span>
+            <button
+              onClick={() => setResult(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                fontSize: '18px',
+                cursor: 'pointer',
+                marginLeft: '10px'
+              }}
+            >
+              ×
+            </button>
+          </div>
+          
+          {result.data && result.data.license && (
+            <div style={{ 
+              marginTop: '10px', 
+              padding: '10px', 
+              background: 'rgba(255,255,255,0.1)', 
+              borderRadius: '4px',
+              fontSize: '12px'
+            }}>
+              <div>License: {result.data.license.key}</div>
+              <div>Status: {result.data.license.status}</div>
+              <div>HWID: {result.data.license.hwid || 'Not bound'}</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
