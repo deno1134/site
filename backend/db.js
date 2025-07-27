@@ -30,11 +30,25 @@ db.run(`CREATE TABLE IF NOT EXISTS keys (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   product_id INTEGER,
   key TEXT,
+  hwid TEXT,
   is_used INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(product_id) REFERENCES products(id)
 )`);
 
-// HWID reset endpoint for admin
+// Add hwid column to existing keys table if it doesn't exist
+db.run(`ALTER TABLE keys ADD COLUMN hwid TEXT`, (err) => {
+  if (err && !err.message.includes('duplicate column name')) {
+    console.error('Error adding hwid column:', err);
+  }
+});
+
+// Add created_at column to existing keys table if it doesn't exist
+db.run(`ALTER TABLE keys ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP`, (err) => {
+  if (err && !err.message.includes('duplicate column name')) {
+    console.error('Error adding created_at column:', err);
+  }
+});
 
 // Create default admin if not exists
 const defaultAdmin = {
