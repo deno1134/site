@@ -1,9 +1,12 @@
 [build]
-  # Build komutu
-  command = "cd frontend && npm ci && npm run build"
+  # Build komutu - artık frontend klasöründeyiz
+  command = "npm ci && npm run build"
   
-  # Publish directory
-  publish = "frontend/dist"
+  # Publish directory - frontend klasöründen dist
+  publish = "dist"
+  
+  # Base directory - frontend klasörü
+  base = "frontend"
 
 # Environment variables
 [build.environment]
