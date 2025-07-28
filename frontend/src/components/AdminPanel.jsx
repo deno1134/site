@@ -11,13 +11,13 @@ function AdminPanel() {
   const token = localStorage.getItem('token');
 
   useEffect(() => {
-    axios.get('http://localhost:3001/api/products')
+    axios.get('/api/products')
       .then(res => setProducts(res.data));
   }, []);
 
   useEffect(() => {
     if (selectedProduct) {
-      axios.get(`http://localhost:3001/api/keys/${selectedProduct}`, {
+      axios.get(`/api/keys/${selectedProduct}`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => setKeys(res.data));
     } else {
@@ -28,7 +28,7 @@ function AdminPanel() {
   const handleAddKey = async () => {
     if (!newKey || !selectedProduct) return;
     try {
-      await axios.post('http://localhost:3001/api/keys', {
+      await axios.post('/api/keys', {
         product_id: selectedProduct,
         key: newKey
       }, {
@@ -36,7 +36,7 @@ function AdminPanel() {
       });
       setNewKey('');
       // Refresh keys
-      const res = await axios.get(`http://localhost:3001/api/keys/${selectedProduct}`, {
+      const res = await axios.get(`/api/keys/${selectedProduct}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setKeys(res.data);
@@ -48,12 +48,12 @@ function AdminPanel() {
   const handleAddProduct = async () => {
     if (!newProduct.name) return;
     try {
-      await axios.post('http://localhost:3001/api/products', newProduct, {
+      await axios.post('/api/products', newProduct, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNewProduct({ name: '', description: '' });
       // Refresh products
-      const res = await axios.get('http://localhost:3001/api/products');
+      const res = await axios.get('/api/products');
       setProducts(res.data);
     } catch (error) {
       alert('Error adding product: ' + (error.response?.data?.message || error.message));
@@ -62,34 +62,34 @@ function AdminPanel() {
 
   const handleResetKey = async (keyValue) => {
     try {
-      await axios.post('http://localhost:3001/api/reset-key', { key: keyValue }, {
+      await axios.post('/api/reset-key', { key: keyValue }, {
         headers: { Authorization: `Bearer ${token}` }
-      });
-      // Refresh keys
-      if (selectedProduct) {
-        const res = await axios.get(`http://localhost:3001/api/keys/${selectedProduct}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setKeys(res.data);
+              });
+        // Refresh keys
+        if (selectedProduct) {
+          const res = await axios.get(`/api/keys/${selectedProduct}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setKeys(res.data);
+        }
+      } catch (error) {
+        alert('Error resetting key: ' + (error.response?.data?.message || error.message));
       }
-    } catch (error) {
-      alert('Error resetting key: ' + (error.response?.data?.message || error.message));
-    }
   };
 
   const handleDeleteKey = async (keyId) => {
     if (!confirm('Are you sure you want to delete this key?')) return;
     try {
-      await axios.delete(`http://localhost:3001/api/keys/${keyId}`, {
+      await axios.delete(`/api/keys/${keyId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Refresh keys
-      if (selectedProduct) {
-        const res = await axios.get(`http://localhost:3001/api/keys/${selectedProduct}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setKeys(res.data);
-      }
+              // Refresh keys
+        if (selectedProduct) {
+          const res = await axios.get(`/api/keys/${selectedProduct}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setKeys(res.data);
+        }
     } catch (error) {
       alert('Error deleting key: ' + (error.response?.data?.message || error.message));
     }
