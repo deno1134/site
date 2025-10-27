@@ -1,0 +1,507 @@
+{
+  "info": {
+    "name": "License System API",
+    "description": "API tabanlı lisans yönetim sistemi",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "adminApiKey",
+      "value": "admin-api-key-change-this-in-production",
+      "type": "string"
+    },
+    {
+      "key": "testLicenseKey",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": ["{{baseUrl}}"],
+          "path": [""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "API Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "status"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "🔐 License Verification",
+      "item": [
+        {
+          "name": "Verify License - First Time (HWID Bind)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success true\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test(\"License is valid\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.license.status).to.eql(\"active\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_key\": \"{{testLicenseKey}}\",\n  \"hwid\": \"test-hardware-id-123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify License - Same HWID (Success)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_key\": \"{{testLicenseKey}}\",\n  \"hwid\": \"test-hardware-id-123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify License - Different HWID (Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_key\": \"{{testLicenseKey}}\",\n  \"hwid\": \"different-hardware-id\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify License - Invalid Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_key\": \"INVALID-LICENSE-KEY\",\n  \"hwid\": \"test-hardware-id-123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin Operations",
+      "item": [
+        {
+          "name": "Create License - 7 Days",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"License created successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.license.key).to.exist;",
+                  "});",
+                  "",
+                  "// Save license key for other tests",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data.license.key) {",
+                  "    pm.collectionVariables.set(\"testLicenseKey\", jsonData.data.license.key);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_type\": \"7d\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create License - 30 Days",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_type\": \"30d\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create License - Lifetime",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_type\": \"lifetime\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Licenses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/licenses?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "licenses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get License Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/license/{{testLicenseKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "license", "{{testLicenseKey}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset HWID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_key\": \"{{testLicenseKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/reset-hwid",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reset-hwid"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update License Status - Suspend",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"suspended\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/license/{{testLicenseKey}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "license", "{{testLicenseKey}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update License Status - Activate",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/license/{{testLicenseKey}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "license", "{{testLicenseKey}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete License",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/license/{{testLicenseKey}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "license", "{{testLicenseKey}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "❌ Error Cases",
+      "item": [
+        {
+          "name": "Verify Without License Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hwid\": \"test-hardware-id-123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create License Without API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_type\": \"30d\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create License With Invalid Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{adminApiKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"license_type\": \"invalid_type\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "404 - Endpoint Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/nonexistent",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "nonexistent"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

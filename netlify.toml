@@ -1,0 +1,41 @@
+[build]
+  # Build komutu - artık frontend klasöründeyiz
+  command = "npm ci && npm run build"
+  
+  # Publish directory - frontend klasöründen dist
+  publish = "dist"
+  
+  # Base directory - frontend klasörü
+  base = "frontend"
+
+# Environment variables
+[build.environment]
+  NODE_VERSION = "18"
+
+# SPA için redirect kuralları
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# API proxy
+[[redirects]]
+  from = "/api/*"
+  to = "https://your-backend-url.herokuapp.com/api/:splat"
+  status = 200
+  force = true
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
