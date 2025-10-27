@@ -10,7 +10,7 @@ function Login({ onLogin }) {
     e.preventDefault();
     setError('');
     try {
-      const res = await axios.post('http://localhost:3001/api/login', { username, password });
+      const res = await axios.post('/api/login', { username, password });
       localStorage.setItem('token', res.data.token);
       onLogin(res.data.is_admin);
     } catch {
